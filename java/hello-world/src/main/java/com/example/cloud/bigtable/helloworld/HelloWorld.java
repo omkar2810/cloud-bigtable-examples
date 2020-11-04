@@ -109,7 +109,7 @@ class PairComparator implements Comparator<Pair>{
   };
 
   private static int[] top(String userID, int K) {
-      int[] result = new int[K+2];
+      int[] result = new int[K];
     print(Integer.toString(K));
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
@@ -313,6 +313,115 @@ private static int view_count(String itemID)  {
       return result.first;
   }
 
+    private static int popular2()  {
+       Pair result = new Pair(-1,-1);
+       try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
+
+      // The admin API lets us create, manage and delete tables
+      Admin admin = connection.getAdmin();
+      // [END bigtable_hw_connect]
+
+      try {
+        // [START bigtable_hw_create_table]
+        // Create a table with a single column family
+        HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
+
+        HashMap<Integer,Integer> map= new HashMap<Integer,Integer>();
+        Scan scan = new Scan();
+        // scan.setFilter(filter);
+        
+        ResultScanner scanner = table.getScanner(scan);
+        for (Result row : scanner) {
+
+            Integer item = Integer.parseInt(Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_2)));
+           
+            if(map.get(item)!=null)
+            {
+                map.put(item,1+map.get(item));
+            }
+            else
+            {
+                map.put(item,1);
+            }
+            
+            if(map.get(item)>result.second)
+            {
+                result.first = item;
+                result.second = map.get(item);
+            }
+        
+        }
+
+        // [END bigtable_hw_delete_table]
+      } catch (IOException e) {
+        if (admin.tableExists(TableName.valueOf(TABLE_NAME))) {
+          print("Cleaning up table");
+        }
+        throw e;
+      }
+    } catch (IOException e) {
+      System.err.println("Exception while running HelloWorld: " + e.getMessage());
+      e.printStackTrace();
+
+    }
+     System.out.println(result.first);
+      return result.first;
+  }
+
+    private static int[] top_interested(String itemID, int K)  {
+       ArrayList<Integer> result = new ArrayList<Integer>();
+       try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
+
+      // The admin API lets us create, manage and delete tables
+      Admin admin = connection.getAdmin();
+      // [END bigtable_hw_connect]
+
+      try {
+        // [START bigtable_hw_create_table]
+        // Create a table with a single column family
+        HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
+
+        Scan scan = new Scan();
+        SingleColumnValueFilter filter = new SingleColumnValueFilter(COLUMN_FAMILY_NAME,
+        COLUMN_2,
+        CompareOp.EQUAL,
+        Bytes.toBytes(itemID)
+        );
+        scan.setFilter(filter);
+        
+        ResultScanner scanner = table.getScanner(scan);
+        for (Result row : scanner) {
+
+            String userID = Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_1));
+            System.out.println("userID " + userID);
+            int[] topK = top(userID, K);
+            for(int i = 0 ; i < topK.length ; ++i) {
+                System.out.println("topKVal " + topK[i]);
+                result.add(topK[i]);
+            }
+        }
+
+        // [END bigtable_hw_delete_table]
+      } catch (IOException e) {
+        if (admin.tableExists(TableName.valueOf(TABLE_NAME))) {
+          print("Cleaning up table");
+        }
+        throw e;
+      }
+    } catch (IOException e) {
+      System.err.println("Exception while running HelloWorld: " + e.getMessage());
+      e.printStackTrace();
+
+    }
+    int[] ret = new int[result.size()];
+    for (int i=0; i < ret.length; i++) {
+        ret[i] = result.get(i).intValue();
+        System.out.println(ret[i]);
+    }
+    return ret;
+  }
 
   /** Connects to Cloud Bigtable, runs some basic operations and prints the results. */
   private static void doHelloWorld(String projectId, String instanceId) {
@@ -456,6 +565,8 @@ private static int view_count(String itemID)  {
     interested("2");
     view_count("2");
     popular();
+    popular2();
+    top_interested("2", 2);
     System.exit(0);
 
   }
