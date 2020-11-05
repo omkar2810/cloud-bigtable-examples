@@ -132,7 +132,7 @@ class PairComparator implements Comparator<Pair>{
   // Write some friendly greetings to Cloud Bigtable
   
 
-  private static int[] top(String userID, int K) {
+  private static int[] top(int userID, int K) {
       int[] result = new int[K];
     //   System.out.println("top("+userID+","+K+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -190,7 +190,7 @@ class PairComparator implements Comparator<Pair>{
       return result;
   }
 
-private static int interested(String itemID)  {
+private static int interested(int itemID)  {
     int result = 0;
     // System.out.println("interested("+itemID+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -235,7 +235,7 @@ private static int interested(String itemID)  {
       return result;
   }
 
-private static int view_count(String itemID)  {
+private static int view_count(int itemID)  {
     int result = 0;
     // System.out.println("view_count("+itemID+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -338,7 +338,7 @@ private static int view_count(String itemID)  {
       return result.first;
   }
 
-    private static int[] top_interested(String itemID, int K)  {
+    private static int[] top_interested(int itemID, int K)  {
     // System.out.println("top_interested("+itemID+","+K+")");
        ArrayList<Integer> result = new ArrayList<Integer>();
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -364,7 +364,7 @@ private static int view_count(String itemID)  {
         ResultScanner scanner = table.getScanner(scan);
         for (Result row : scanner) {
 
-            String userID = Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_1));
+            int userID = Bytes.toInt(row.getValue(COLUMN_FAMILY_NAME, COLUMN_1));
             // System.out.println("userID " + userID);
             int[] topK = top(userID, K);
             for(int i = 0 ; i < topK.length ; ++i) {
@@ -394,8 +394,9 @@ private static int view_count(String itemID)  {
   }
 
   /** Connects to Cloud Bigtable, runs some basic operations and prints the results. */
-  private static void createTable(String projectId, String instanceId) {
+  private static void createTable(String projectId, String instanceId, String filePath) {
     System.out.println("createTable("+projectId+","+instanceId+")");
+    
     // [START bigtable_hw_connect]
     // Create the Bigtable connection, use try-with-resources to make sure it gets closed
     try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -405,12 +406,17 @@ private static int view_count(String itemID)  {
       // [END bigtable_hw_connect]
 
       try {
+        
+        if(admin.tableExists(TableName.valueOf(TABLE_NAME)))
+        {
+            admin.disableTable(TableName.valueOf(TABLE_NAME));
+            admin.deleteTable(TableName.valueOf(TABLE_NAME));
+        }
+
         HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
         descriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME));
-
-        print("Create table " + descriptor.getNameAsString());
+        System.out.println("Create table " + descriptor.getNameAsString());
         admin.createTable(descriptor);
-
         Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
 
         List<Put> puts = new ArrayList<Put>();
@@ -419,8 +425,16 @@ private static int view_count(String itemID)  {
             String splitBy = ",";
             BufferedReader br = new BufferedReader(new FileReader("data.csv"));
             try{
+            int cnt = 0;
+            int batch = 10e6;
             String line = br.readLine();
             while((line = br.readLine()) != null){
+
+                if(cnt%batch==0 && cnt!=0)
+                {
+                    table.put(puts);
+                    puts.clear();
+                }
                 String[] b = line.split(splitBy);
                 String userID = b[0];
                 String itemID = b[1];
@@ -428,11 +442,12 @@ private static int view_count(String itemID)  {
 
                 String rowKey = userID + "-" + itemID ;
                 Put put = new Put(Bytes.toBytes(rowKey));
-                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(userID));
-                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(itemID));
-                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(valueCounts));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(Integer.parseInt(userID)));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(Integer.parseInt(itemID)));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(Integer.parseInt(valueCounts)));
                 puts.add(put);
-                System.out.println(userID+" "+itemID+" "+valueCounts);
+                cnt += 1;
+                // System.out.println(userID+" "+itemID+" "+valueCounts);
             }
             table.put(puts);
             br.close();
@@ -448,23 +463,7 @@ private static int view_count(String itemID)  {
             System.out.println("File Not Found");
         }
 
-        // for (int i = 0; i < userID.size(); i++) {
-        //   String rowKey = userID.get(i) + "-" + itemID.get(i) ;
-        //   Put put = new Put(Bytes.toBytes(rowKey));
-        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(userID.get(i)));
-        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(itemID.get(i)));
-        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(valueCounts.get(i)));
 
-        //   table.put(put);
-        // }
-        // [END bigtable_hw_write_rows]
-
-     
-        // Scan scan = new Scan();
-
-        // admin.disableTable(table.getName());
-        // admin.deleteTable(table.getName());
-        // [END bigtable_hw_delete_table]
       } catch (IOException e) {
         if (admin.tableExists(TableName.valueOf(TABLE_NAME))) {
           print("Cleaning up table");
@@ -487,6 +486,13 @@ private static int view_count(String itemID)  {
     System.out.println("HelloWorld: " + msg);
   }
 
+  private static int int2str(String s)
+  {
+      if(s==null)
+        return -1;
+      else
+        return Integer.parseInt(s);
+  }
 
   public static void main(String[] args) {
     // Consult system properties to get project/instance
@@ -494,13 +500,36 @@ private static int view_count(String itemID)  {
     projectId = requiredProperty("bigtable.projectID");
     instanceId = requiredProperty("bigtable.instanceID");
 
-    // createTable(projectId, instanceId);
-    PrintResults.print("top",top("13",7));
-    PrintResults.print("interested",interested("88"));
-    PrintResults.print("popular",popular());
-    PrintResults.print("view_count",view_count("76"));
-    // PrintResults.print("top_interested",top_interested("2", 2));
+    String filePath = optionalProperty("filePath");
+    String query = optionalProperty("query");
 
+    if(filePath != null){
+        createTable(projectId, instanceId, filePath);
+    }
+    int userId = int2str(optionalProperty("userId"));
+    int K = int2str(optionalProperty("K"));
+    int itemId = int2str(optionalProperty("itemId"));
+    System.out.println(itemId);
+    if(query.equals("top"))
+    {  
+        PrintResults.print("top",top(userId,K));
+    }    
+    else if(query.equals("interested")) 
+    {
+        PrintResults.print("interested",interested(itemId));
+    }
+    else if(query.equals("popular"))
+    {
+    PrintResults.print("popular",popular());
+    }
+    else if(query.equals("view_count"))
+    {
+    PrintResults.print("view_count",view_count(itemId));
+    }
+    else if(query.equals("top_interested"))
+    {
+        PrintResults.print("top_interested",top_interested(itemId, K));
+    }
     System.exit(0);
 
   }
@@ -512,4 +541,11 @@ private static int view_count(String itemID)  {
     }
     return value;
   }
+
+  private static String optionalProperty(String prop) {
+    String value = System.getProperty(prop);
+    return value;
+  }
+
+
 }
