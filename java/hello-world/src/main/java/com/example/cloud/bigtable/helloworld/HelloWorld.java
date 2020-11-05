@@ -115,7 +115,7 @@ class PairComparator implements Comparator<Pair>{
  public class HelloWorld {
 
   // Refer to table metadata names by byte array in the HBase API
-  private static final byte[] TABLE_NAME = Bytes.toBytes("Hello-Bigtable");
+  private static final byte[] TABLE_NAME = Bytes.toBytes("Team1314_Table");
   private static final byte[] COLUMN_FAMILY_NAME = Bytes.toBytes("cf1");
   private static final byte[] COLUMN_NAME = Bytes.toBytes("greeting");
 
@@ -123,16 +123,14 @@ class PairComparator implements Comparator<Pair>{
   private static final byte[] COLUMN_2 = Bytes.toBytes("itemID");
   private static final byte[] COLUMN_3 = Bytes.toBytes("valueCounts");
 
-  private static List<String> userID = new ArrayList<String>();
-  private static List<String> itemID = new ArrayList<String>();
-  private static List<String> valueCounts = new ArrayList<String>();
+//   private static List<String> userID = new ArrayList<String>();
+//   private static List<String> itemID = new ArrayList<String>();
+//   private static List<String> valueCounts = new ArrayList<String>();
 
   private static String projectId;
   private static String instanceId;
   // Write some friendly greetings to Cloud Bigtable
-  private static final String[] GREETINGS = {
-    "Hello World!", "Hello Cloud Bigtable!", "Hello HBase!"
-  };
+  
 
   private static int[] top(String userID, int K) {
       int[] result = new int[K];
@@ -493,31 +491,6 @@ private static int view_count(String itemID)  {
   public static void main(String[] args) {
     // Consult system properties to get project/instance
 
-    try
-    {
-        String splitBy = ",";
-        BufferedReader br = new BufferedReader(new FileReader("sample.csv"));
-        try{
-        String line = br.readLine();
-          while((line = br.readLine()) != null){
-               String[] b = line.split(splitBy);
-               userID.add(b[0]);
-               itemID.add(b[1]);
-               valueCounts.add(b[2]);
-            //    System.out.println(b[0]+b[1]+b[2]);
-          }
-          br.close();
-        }
-        catch(IOException e)
-        {
-            System.out.println("Cant read file");
-        }
-
-    }  
-    catch (FileNotFoundException e)
-    {
-        System.out.println("File Not Found");
-    }
     projectId = requiredProperty("bigtable.projectID");
     instanceId = requiredProperty("bigtable.instanceID");
 
