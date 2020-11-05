@@ -56,6 +56,32 @@ import java.util.*;
  * some basic operations.
  */
 
+class PrintResults{
+
+    public static void print(String fn, int[] arr)
+    {
+        System.out.println(fn);
+
+        for(int i=0;i<arr.length;i++)
+        {
+            System.out.print(arr[i]+" ");
+        }
+
+        System.out.println();
+
+        return;
+    }
+
+    public static void print(String fn, int a)
+    {
+        System.out.println(fn);
+        System.out.println(a);
+
+        return;
+    }
+
+}
+
 class Pair {
 
     public int first;
@@ -110,7 +136,7 @@ class PairComparator implements Comparator<Pair>{
 
   private static int[] top(String userID, int K) {
       int[] result = new int[K];
-    print(Integer.toString(K));
+    //   System.out.println("top("+userID+","+K+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
       // The admin API lets us create, manage and delete tables
@@ -133,29 +159,28 @@ class PairComparator implements Comparator<Pair>{
         scan.setFilter(filter);
         
         PriorityQueue<Pair> pQueue = new PriorityQueue<Pair>(K+2, new PairComparator());
-        print("Scan for all greetings:");
+        // print("Scan for all greetings:");
         ResultScanner scanner = table.getScanner(scan);
         for (Result row : scanner) {
         
           byte[] item = row.getValue(COLUMN_FAMILY_NAME, COLUMN_2);
           byte[] value = row.getValue(COLUMN_FAMILY_NAME, COLUMN_3);
           Pair temp = new Pair(Integer.parseInt(Bytes.toString(value)),Integer.parseInt(Bytes.toString(item)));
-          print(Integer.toString(temp.first)+" "+ Integer.toString(temp.second));
+        //   print(Integer.toString(temp.first)+" "+ Integer.toString(temp.second));
         //   Pair temp = new Pair(1,2);
           pQueue.add(temp);
         }
 
         for(int i=0;i<K;i++)
         {
-            // int res = pQueue.poll().second;
             result[i] = pQueue.poll().second; 
-            print(Integer.toString(result[i]));
+            // System.out.println(Integer.toString(result[i]));
             
         }
         // [END bigtable_hw_delete_table]
       } catch (IOException e) {
         if (admin.tableExists(TableName.valueOf(TABLE_NAME))) {
-          print("Cleaning up table");
+        //   print("Cleaning up table");
         }
         throw e;
       }
@@ -169,6 +194,7 @@ class PairComparator implements Comparator<Pair>{
 
 private static int interested(String itemID)  {
     int result = 0;
+    // System.out.println("interested("+itemID+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
       // The admin API lets us create, manage and delete tables
@@ -207,12 +233,13 @@ private static int interested(String itemID)  {
       e.printStackTrace();
 
     }
-        System.out.println(result);
+        // System.out.println(result);
       return result;
   }
 
 private static int view_count(String itemID)  {
     int result = 0;
+    // System.out.println("view_count("+itemID+")");
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
       // The admin API lets us create, manage and delete tables
@@ -252,68 +279,12 @@ private static int view_count(String itemID)  {
       e.printStackTrace();
 
     }
-        System.out.println(result);
+        // System.out.println(result);
       return result;
   }
 
-  private static int popular()  {
-    Pair result = new Pair(-1,-1);
-       try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
-
-      // The admin API lets us create, manage and delete tables
-      Admin admin = connection.getAdmin();
-      // [END bigtable_hw_connect]
-
-      try {
-        // [START bigtable_hw_create_table]
-        // Create a table with a single column family
-        HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
-        Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
-
-        HashMap<Integer,Integer> map= new HashMap<Integer,Integer>();
-        Scan scan = new Scan();
-        // scan.setFilter(filter);
-        
-        ResultScanner scanner = table.getScanner(scan);
-        for (Result row : scanner) {
-
-            Integer item = Integer.parseInt(Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_2)));
-            Integer value = Integer.parseInt(Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_3)));
-
-            if(map.get(item)!=null)
-            {
-                map.put(item,value+map.get(item));
-            }
-            else
-            {
-                map.put(item,value);
-            }
-            
-            if(map.get(item)>result.second)
-            {
-                result.first = item;
-                result.second = map.get(item);
-            }
-        
-        }
-
-        // [END bigtable_hw_delete_table]
-      } catch (IOException e) {
-        if (admin.tableExists(TableName.valueOf(TABLE_NAME))) {
-          print("Cleaning up table");
-        }
-        throw e;
-      }
-    } catch (IOException e) {
-      System.err.println("Exception while running HelloWorld: " + e.getMessage());
-      e.printStackTrace();
-
-    }
-     System.out.println(result.first);
-      return result.first;
-  }
-
-    private static int popular2()  {
+    private static int popular()  {
+    // System.out.println("popular()");
        Pair result = new Pair(-1,-1);
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
@@ -365,11 +336,12 @@ private static int view_count(String itemID)  {
       e.printStackTrace();
 
     }
-     System.out.println(result.first);
+    //  System.out.println(result.first);
       return result.first;
   }
 
     private static int[] top_interested(String itemID, int K)  {
+    // System.out.println("top_interested("+itemID+","+K+")");
        ArrayList<Integer> result = new ArrayList<Integer>();
        try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
 
@@ -395,10 +367,10 @@ private static int view_count(String itemID)  {
         for (Result row : scanner) {
 
             String userID = Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_1));
-            System.out.println("userID " + userID);
+            // System.out.println("userID " + userID);
             int[] topK = top(userID, K);
             for(int i = 0 ; i < topK.length ; ++i) {
-                System.out.println("topKVal " + topK[i]);
+                // System.out.println("topKVal " + topK[i]);
                 result.add(topK[i]);
             }
         }
@@ -418,14 +390,14 @@ private static int view_count(String itemID)  {
     int[] ret = new int[result.size()];
     for (int i=0; i < ret.length; i++) {
         ret[i] = result.get(i).intValue();
-        System.out.println(ret[i]);
+        // System.out.println(ret[i]);
     }
     return ret;
   }
 
   /** Connects to Cloud Bigtable, runs some basic operations and prints the results. */
-  private static void doHelloWorld(String projectId, String instanceId) {
-
+  private static void createTable(String projectId, String instanceId) {
+    System.out.println("createTable("+projectId+","+instanceId+")");
     // [START bigtable_hw_connect]
     // Create the Bigtable connection, use try-with-resources to make sure it gets closed
     try (Connection connection = BigtableConfiguration.connect(projectId, instanceId)) {
@@ -435,75 +407,63 @@ private static int view_count(String itemID)  {
       // [END bigtable_hw_connect]
 
       try {
-        // [START bigtable_hw_create_table]
-        // Create a table with a single column family
         HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
         descriptor.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME));
 
         print("Create table " + descriptor.getNameAsString());
         admin.createTable(descriptor);
-        // [END bigtable_hw_create_table]
 
-        // [START bigtable_hw_write_rows]
-        // Retrieve the table we just created so we can do some reads and writes
         Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
 
-        // Write some rows to the table
-        print("Write some greetings to the table");
-        for (int i = 0; i < userID.size(); i++) {
-          // Each row has a unique row key.
-          //
-          // Note: This example uses sequential numeric IDs for simplicity, but
-          // this can result in poor performance in a production application.
-          // Since rows are stored in sorted order by key, sequential keys can
-          // result in poor distribution of operations across nodes.
-          //
-          // For more information about how to design a Bigtable schema for the
-          // best performance, see the documentation:
-          //
-          //     https://cloud.google.com/bigtable/docs/schema-design
-          String rowKey = userID.get(i) + "-" + itemID.get(i) ;
+        List<Put> puts = new ArrayList<Put>();
+        try
+        {
+            String splitBy = ",";
+            BufferedReader br = new BufferedReader(new FileReader("data.csv"));
+            try{
+            String line = br.readLine();
+            while((line = br.readLine()) != null){
+                String[] b = line.split(splitBy);
+                String userID = b[0];
+                String itemID = b[1];
+                String valueCounts = b[2];
 
-          // Put a single row into the table. We could also pass a list of Puts to write a batch.
-          Put put = new Put(Bytes.toBytes(rowKey));
-        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_NAME, Bytes.toBytes(GREETINGS[i]));
+                String rowKey = userID + "-" + itemID ;
+                Put put = new Put(Bytes.toBytes(rowKey));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(userID));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(itemID));
+                put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(valueCounts));
+                puts.add(put);
+                System.out.println(userID+" "+itemID+" "+valueCounts);
+            }
+            table.put(puts);
+            br.close();
+            }
+            catch(IOException e)
+            {
+                System.out.println("Cant read file");
+            }
 
-          put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(userID.get(i)));
-          put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(itemID.get(i)));
-          put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(valueCounts.get(i)));
-
-          table.put(put);
+        }  
+        catch (FileNotFoundException e)
+        {
+            System.out.println("File Not Found");
         }
+
+        // for (int i = 0; i < userID.size(); i++) {
+        //   String rowKey = userID.get(i) + "-" + itemID.get(i) ;
+        //   Put put = new Put(Bytes.toBytes(rowKey));
+        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_1, Bytes.toBytes(userID.get(i)));
+        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_2, Bytes.toBytes(itemID.get(i)));
+        //   put.addColumn(COLUMN_FAMILY_NAME, COLUMN_3, Bytes.toBytes(valueCounts.get(i)));
+
+        //   table.put(put);
+        // }
         // [END bigtable_hw_write_rows]
 
-        // [START bigtable_hw_get_by_key]
-        // Get the first greeting by row key
-        // String rowKey = "greeting0";
-        // Result getResult = table.get(new Get(Bytes.toBytes(rowKey)));
-        // String greeting = Bytes.toString(getResult.getValue(COLUMN_FAMILY_NAME, COLUMN_1));
-        // System.out.println("Get a single greeting by row key");
-        // System.out.printf("\t%s = %s\n", rowKey, greeting);
+     
+        // Scan scan = new Scan();
 
-        print("Function Call");
-
-        // top("2",2);
-        // [END bigtable_hw_get_by_key]
-
-        // [START bigtable_hw_scan_all]
-        // Now scan across all rows.
-        Scan scan = new Scan();
-
-        print("Scan for all greetings:");
-        ResultScanner scanner = table.getScanner(scan);
-        for (Result row : scanner) {
-          byte[] valueBytes = row.getValue(COLUMN_FAMILY_NAME, COLUMN_2);
-          System.out.println('\t' + Bytes.toString(valueBytes));
-        }
-        // [END bigtable_hw_scan_all]
-
-        // [START bigtable_hw_delete_table]
-        // Clean up by disabling and then deleting the table
-        // print("Delete the table");
         // admin.disableTable(table.getName());
         // admin.deleteTable(table.getName());
         // [END bigtable_hw_delete_table]
@@ -529,6 +489,7 @@ private static int view_count(String itemID)  {
     System.out.println("HelloWorld: " + msg);
   }
 
+
   public static void main(String[] args) {
     // Consult system properties to get project/instance
 
@@ -543,7 +504,7 @@ private static int view_count(String itemID)  {
                userID.add(b[0]);
                itemID.add(b[1]);
                valueCounts.add(b[2]);
-               System.out.println(b[0]+b[1]+b[2]);
+            //    System.out.println(b[0]+b[1]+b[2]);
           }
           br.close();
         }
@@ -560,13 +521,13 @@ private static int view_count(String itemID)  {
     projectId = requiredProperty("bigtable.projectID");
     instanceId = requiredProperty("bigtable.instanceID");
 
-    // doHelloWorld(projectId, instanceId);
-    top("2",2);
-    interested("2");
-    view_count("2");
-    popular();
-    popular2();
-    top_interested("2", 2);
+    // createTable(projectId, instanceId);
+    PrintResults.print("top",top("13",7));
+    PrintResults.print("interested",interested("88"));
+    PrintResults.print("popular",popular());
+    PrintResults.print("view_count",view_count("76"));
+    // PrintResults.print("top_interested",top_interested("2", 2));
+
     System.exit(0);
 
   }
