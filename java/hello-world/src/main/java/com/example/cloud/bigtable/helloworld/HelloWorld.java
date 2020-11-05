@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.cloud.bigtable.helloworld;
+ package com.example.cloud.bigtable.helloworld;
 // [START bigtable_hw_imports]
 import com.google.cloud.bigtable.hbase.BigtableConfiguration;
 
@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 
 import java.io.BufferedReader;
@@ -163,7 +164,7 @@ class PairComparator implements Comparator<Pair>{
         
           byte[] item = row.getValue(COLUMN_FAMILY_NAME, COLUMN_2);
           byte[] value = row.getValue(COLUMN_FAMILY_NAME, COLUMN_3);
-          Pair temp = new Pair(Integer.parseInt(Bytes.toString(value)),Integer.parseInt(Bytes.toString(item)));
+          Pair temp = new Pair(Bytes.toInt(value),Bytes.toInt(item));
         //   print(Integer.toString(temp.first)+" "+ Integer.toString(temp.second));
         //   Pair temp = new Pair(1,2);
           pQueue.add(temp);
@@ -205,14 +206,24 @@ private static int interested(int itemID)  {
         HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(TABLE_NAME));
         Table table = connection.getTable(TableName.valueOf(TABLE_NAME));
 
+        FilterList filterList = new FilterList();
         SingleColumnValueFilter filter = new SingleColumnValueFilter(COLUMN_FAMILY_NAME,
         COLUMN_2,
         CompareOp.EQUAL,
         Bytes.toBytes(itemID)
         );
-        
+        filterList.addFilter(filter);
+
+        SingleColumnValueFilter countFilter = new SingleColumnValueFilter(COLUMN_FAMILY_NAME, 
+        COLUMN_3,
+        CompareOp.GREATER,
+        Bytes.toBytes(0)
+        );
+
+        filterList.addFilter(countFilter);
+
         Scan scan = new Scan();
-        scan.setFilter(filter);
+        scan.setFilter(filterList);
         
         ResultScanner scanner = table.getScanner(scan);
         for (Result row : scanner) {
@@ -262,7 +273,7 @@ private static int view_count(int itemID)  {
         ResultScanner scanner = table.getScanner(scan);
         for (Result row : scanner) {
             byte[] value = row.getValue(COLUMN_FAMILY_NAME, COLUMN_3);
-            result += Integer.parseInt(Bytes.toString(value));
+            result += Bytes.toInt(value);
         }
 
         // [END bigtable_hw_delete_table]
@@ -303,7 +314,7 @@ private static int view_count(int itemID)  {
         ResultScanner scanner = table.getScanner(scan);
         for (Result row : scanner) {
 
-            Integer item = Integer.parseInt(Bytes.toString(row.getValue(COLUMN_FAMILY_NAME, COLUMN_2)));
+            Integer item = Bytes.toInt(row.getValue(COLUMN_FAMILY_NAME, COLUMN_2));
            
             if(map.get(item)!=null)
             {
@@ -426,7 +437,7 @@ private static int view_count(int itemID)  {
             BufferedReader br = new BufferedReader(new FileReader("data.csv"));
             try{
             int cnt = 0;
-            int batch = 10e6;
+            int batch = 1000000;
             String line = br.readLine();
             while((line = br.readLine()) != null){
 
@@ -509,7 +520,10 @@ private static int view_count(int itemID)  {
     int userId = int2str(optionalProperty("userId"));
     int K = int2str(optionalProperty("K"));
     int itemId = int2str(optionalProperty("itemId"));
-    System.out.println(itemId);
+    // System.out.println(itemId);
+    // System.out.println(userId);
+    // System.out.println(K);
+
     if(query.equals("top"))
     {  
         PrintResults.print("top",top(userId,K));
